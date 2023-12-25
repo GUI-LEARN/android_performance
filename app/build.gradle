@@ -1,0 +1,57 @@
+apply plugin: 'com.android.application'
+//apply plugin: 'MyAsmPlugin'
+android {
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "com.example.performance_optimize"
+        minSdk 21
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+        ndk {
+            abiFilters 'armeabi-v7a'
+        }
+    }
+
+    buildFeatures {
+        prefab true
+    }
+
+    packagingOptions {
+        pickFirst '**/libbytehook.so'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    externalNativeBuild{
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    android.applicationVariants.all {
+        variant ->
+            variant.outputs.all {
+                outputFileName = "PerformanceOptimizeDemo.apk"
+            }
+    }
+
+}
+
+dependencies {
+    implementation 'com.google.android.material:material:1.4.0'
+    implementation 'com.bytedance:bytehook:1.0.10'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:3.0-alpha-1'
+}
