@@ -33,7 +33,7 @@ class MyAsmTransform extends Transform {
                 ClassWriter writer = new ClassWriter(reader)
                 //在自定义的 TestClassVisitor 中通过 ASM 操作 class 文件中的方法
                 ClassVisitor cv = new TestClassVisitor(writer)
-                reader.accept(cv);
+                reader.accept(cv)
                 bos.write(writer.toByteArray());
             }
         }

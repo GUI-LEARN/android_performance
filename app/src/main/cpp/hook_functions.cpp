@@ -29,17 +29,11 @@ namespace {
             if (state->current == state->end) {
                 return _URC_END_OF_STACK;
             } else {
-                *state->current++ = reinterpret_cast<void *>(pc);
+                *state->current++ = (void *)pc;
             }
         }
         return _URC_NO_REASON;
     }
-}
-
-size_t captureBacktrace(void **buffer, size_t max) {
-    BacktraceState state = {buffer, buffer + max};
-    _Unwind_Backtrace(unwindCallback, &state);
-    return state.current - buffer;
 }
 
 //void saveStack(void *secret){
@@ -61,26 +55,42 @@ size_t captureBacktrace(void **buffer, size_t max) {
 //    }
 //}
 
-void dumpBacktrace(void **buffer, size_t count) {
-    for (size_t idx = 0; idx < count; ++idx) {
+void dumpBacktrace(void **buffer, size_t depth) {
+    for (size_t idx = 0; idx < depth; ++idx) {
         void *addr = buffer[idx];
-        Dl_info info;
-        if (dladdr(addr, &info)) {
-            const uintptr_t addr_relative =
-                    ((uintptr_t) addr - (uintptr_t) info.dli_fbase);
-            __android_log_print(ANDROID_LOG_DEBUG, "MallocHook",
-                                "# %d : %p : %s(%p)(%s)(%p)",
-                                idx,
-                                addr, info.dli_fname, addr_relative, info.dli_sname,
-                                info.dli_saddr);
-        }
+        __android_log_print(ANDROID_LOG_DEBUG, "MallocHook",
+                            "# %d : %p",
+                            idx,
+                            addr);
     }
 }
+
+//void dumpBacktrace(void **buffer, size_t depth) {
+//    for (size_t idx = 0; idx < depth; ++idx) {
+//        void *addr = buffer[idx];
+//        Dl_info info;
+//        if (dladdr(addr, &info)) {
+//            const uintptr_t addr_relative =
+//                    ((uintptr_t) addr - (uintptr_t) info.dli_fbase);
+//            __android_log_print(ANDROID_LOG_DEBUG, "MallocHook",
+//                                "# %d : %p : %s(%p)(%s)(%p)",
+//                                idx,
+//                                addr, info.dli_fname, addr_relative, info.dli_sname,
+//                                info.dli_saddr);
+//        }
+//    }
+//}
 
 void printNativeStack() {
     const size_t max = 30; // 调用的层数
     void *buffer[max];
-    dumpBacktrace(buffer, captureBacktrace(buffer, max));
+    BacktraceState state = {buffer, buffer + max};
+    //捕获堆栈
+    _Unwind_Backtrace(unwindCallback, &state);
+    //返回堆栈的深度
+    size_t depth =  state.current - buffer;
+    //打印堆栈
+    dumpBacktrace(buffer, depth);
 }
 
 void *malloc_hook(size_t len) {
@@ -95,9 +105,9 @@ void *malloc_hook(size_t len) {
 }
 
 ssize_t my_write(int fd, const void* const buf, size_t count) {
+    BYTEHOOK_STACK_SCOPE();
     if (buf != nullptr) {
         char *content = (char *) buf;
-        __android_log_print(ANDROID_LOG_DEBUG,"my_write","test %d %s",count,content);
         std::ofstream file("/data/data/com.example.performance_optimize/example_anr.txt", std::ios::app);
         if (file.is_open()) {
             file << content;
