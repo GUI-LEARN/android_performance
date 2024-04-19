@@ -11,6 +11,7 @@ add_compile_options(-fno-omit-frame-pointer)
 add_library(
         optimize
         SHARED
+        optimize.cpp
         hook_functions.cpp)
 
 add_library(

@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <android/log.h>
+#include <dlfcn.h>
 #include "breakpad/src/client/linux/handler/exception_handler.h"
 #include "breakpad/src/client/linux/handler/minidump_descriptor.h"
 
@@ -24,3 +25,4 @@ Java_com_example_performance_1optimize_stability_StabilityExampleActivity_captur
     int* ptr = nullptr;
     *ptr = 10;
 }
+

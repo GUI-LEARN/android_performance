@@ -36,50 +36,49 @@ namespace {
     }
 }
 
-//void saveStack(void *secret){
-//    // 获取上下文信息
-//    ucontext_t *uc = (ucontext_t *)secret;
-//    // 打印信号类型和地址
-//    printf("Signal %d (%s), address is %p from %p\n",
-//           sig, strsignal(sig), info->si_addr,
-//           uc->uc_mcontext.arm_pc);
-//    // 打印堆栈信息
-//    printf("Stack trace:\n");
-//    void **frame_pointer = (void **) uc->uc_mcontext.arm_fp;
-//    void *stack_pointer = (void *) uc->uc_mcontext.arm_sp;
-//    void *program_counter = (void *) uc->uc_mcontext.arm_pc;
-//    while (frame_pointer && stack_pointer < frame_pointer) {
-//        printf("%p\n", program_counter);
-//        program_counter = frame_pointer[1];
-//        frame_pointer = (void **)(frame_pointer[0]);
-//    }
-//}
+static void saveStackBySp(void *secret) {
+    // 获取上下文信息
+    ucontext_t *uc = (ucontext_t *)secret;
+    int i = 0;
+    Dl_info  dl_info;
+    const void **frame_pointer = (const void **)uc->uc_mcontext.arm_fp;
+    const void *return_address = (const void *)uc->uc_mcontext.arm_pc;
+    printf("\nStack trace:");
+    while (return_address) {
+        memset(&dl_info, 0, sizeof(Dl_info));
+        if (!dladdr((void *)return_address, &dl_info))        break;
+        const char *sname = dl_info.dli_sname;
+        //打印函数调用的信息，包括计数器、返回地址、函数名、偏移量和文件名
+        printf("%02d: %p <%s + %u> (%s)", ++i, return_address, sname,
+               ((uintptr_t)return_address - (uintptr_t)dl_info.dli_saddr),
+               dl_info.dli_fname);
+        //如果帧指针为空指针，表示已经到达调用链的终点，因此跳出循环
+        if (!frame_pointer)        break;
+        //获取上一个函数的LR的值，即返回地址
+        return_address = frame_pointer[-1];
+        //获取上一个函数的FP的值
+        frame_pointer = (const void **)frame_pointer[-2];
+
+    }
+    printf("Stack trace end.");
+}
+
 
 void dumpBacktrace(void **buffer, size_t depth) {
     for (size_t idx = 0; idx < depth; ++idx) {
         void *addr = buffer[idx];
-        __android_log_print(ANDROID_LOG_DEBUG, "MallocHook",
-                            "# %d : %p",
-                            idx,
-                            addr);
+        Dl_info info;
+        if (dladdr(addr, &info)) {
+            const uintptr_t addr_relative =
+                    ((uintptr_t) addr - (uintptr_t) info.dli_fbase);
+            __android_log_print(ANDROID_LOG_DEBUG, "MallocHook",
+                                "# %d : %p : %s(%p)(%s)(%p)",
+                                idx,
+                                addr, info.dli_fname, addr_relative, info.dli_sname,
+                                info.dli_saddr);
+        }
     }
 }
-
-//void dumpBacktrace(void **buffer, size_t depth) {
-//    for (size_t idx = 0; idx < depth; ++idx) {
-//        void *addr = buffer[idx];
-//        Dl_info info;
-//        if (dladdr(addr, &info)) {
-//            const uintptr_t addr_relative =
-//                    ((uintptr_t) addr - (uintptr_t) info.dli_fbase);
-//            __android_log_print(ANDROID_LOG_DEBUG, "MallocHook",
-//                                "# %d : %p : %s(%p)(%s)(%p)",
-//                                idx,
-//                                addr, info.dli_fname, addr_relative, info.dli_sname,
-//                                info.dli_saddr);
-//        }
-//    }
-//}
 
 void printNativeStack() {
     const size_t max = 30; // 调用的层数
