@@ -254,7 +254,7 @@ Java_com_example_performance_1optimize_memory_NativeLeakActivity_hookMallocByPLT
     //读写权限改为可写
     mprotect((void *) (symbolTableAddr & ~(PAGE_SIZE - 1)), PAGE_SIZE,PROT_READ | PROT_WRITE);
     //目标函数偏移地址
-    originFunc = 0x3fd4 + base_addr;
+    originFunc = 0x52474 + base_addr;
     __android_log_print(ANDROID_LOG_DEBUG, "hookMallocByPLTHook", "originFunc:%p",originFunc);
     //替换的hook函数的偏移地址
     uintptr_t newFunc = (uintptr_t) &malloc_hook_by_plt;
@@ -271,45 +271,45 @@ Java_com_example_performance_1optimize_memory_NativeLeakActivity_hookMallocByPLT
         }
     }
 
-
-    Dl_info info;
-    if (dladdr((void *)originFunc, &info)) {
-        __android_log_print(ANDROID_LOG_DEBUG, "originFunc symbol",
-                            "%p : %s(%s)(%p)",
-                            originFunc, info.dli_fname, info.dli_sname,
-                            info.dli_saddr);
-    }
-
-    Elf32_Rel *rela;
-    Elf32_Sym *sym;
-    size_t pltrel_size = 0;
-    // 遍历动态信息表，查找DT_JMPREL和DT_PLTRELSZ标签
-    for (int i = 0; i < dynamicSize; i++) {
-        if (dynamic_table[i].d_tag == DT_JMPREL) {
-            rela = (Elf32_Rel *)(dynamic_table[i].d_un.d_ptr + base_addr);
-            __android_log_print(ANDROID_LOG_DEBUG, "hookMallocByPLTHook", "DT_PLTRELSZ2 size:%d", dynamic_table[i].d_un.d_val);
-        } else if(dynamic_table[i].d_tag == DT_PLTRELSZ){
-            pltrel_size = dynamic_table[i].d_un.d_val;
-        } else if(dynamic_table[i].d_tag == DT_SYMTAB){
-            sym = (Elf32_Sym *)(dynamic_table[i].d_un.d_val + base_addr);
-        }
-    }
-    __android_log_print(ANDROID_LOG_DEBUG, "hookMallocByPLTHook", "rela:%p,size:%d,sym:%p", rela,pltrel_size,sym);
-    // 遍历重定位表，找到函数的重定位项
-    size_t entries = pltrel_size / sizeof(Elf32_Rel);
-    for (size_t i = 0; i < entries; ++i) {
-        Elf32_Rel *reloc = &rela[i];
-        size_t symbol_index = ELF32_R_SYM(reloc->r_info);
-        // 根据symbol_index获取符号表中的符号信息
-        std::string name = getSymbolNameByValue(base_addr,&sym[symbol_index]);
-        __android_log_print(ANDROID_LOG_DEBUG, "get symbol",
-                            "%d,name:(%p)(%s)(%p)",
-                            symbol_index,&sym[symbol_index].st_value,name.c_str(),reloc->r_offset);
-        if(name.find("malloc")!= std::string::npos){
-            originFunc = reloc->r_offset + base_addr;
-            break;
-        }
-    }
+//
+//    Dl_info info;
+//    if (dladdr((void *)originFunc, &info)) {
+//        __android_log_print(ANDROID_LOG_DEBUG, "originFunc symbol",
+//                            "%p : %s(%s)(%p)",
+//                            originFunc, info.dli_fname, info.dli_sname,
+//                            info.dli_saddr);
+//    }
+//
+//    Elf32_Rel *rela;
+//    Elf32_Sym *sym;
+//    size_t pltrel_size = 0;
+//    // 遍历动态信息表，查找DT_JMPREL和DT_PLTRELSZ标签
+//    for (int i = 0; i < dynamicSize; i++) {
+//        if (dynamic_table[i].d_tag == DT_JMPREL) {
+//            rela = (Elf32_Rel *)(dynamic_table[i].d_un.d_ptr + base_addr);
+//            __android_log_print(ANDROID_LOG_DEBUG, "hookMallocByPLTHook", "DT_PLTRELSZ2 size:%d", dynamic_table[i].d_un.d_val);
+//        } else if(dynamic_table[i].d_tag == DT_PLTRELSZ){
+//            pltrel_size = dynamic_table[i].d_un.d_val;
+//        } else if(dynamic_table[i].d_tag == DT_SYMTAB){
+//            sym = (Elf32_Sym *)(dynamic_table[i].d_un.d_val + base_addr);
+//        }
+//    }
+//    __android_log_print(ANDROID_LOG_DEBUG, "hookMallocByPLTHook", "rela:%p,size:%d,sym:%p", rela,pltrel_size,sym);
+//    // 遍历重定位表，找到函数的重定位项
+//    size_t entries = pltrel_size / sizeof(Elf32_Rel);
+//    for (size_t i = 0; i < entries; ++i) {
+//        Elf32_Rel *reloc = &rela[i];
+//        size_t symbol_index = ELF32_R_SYM(reloc->r_info);
+//        // 根据symbol_index获取符号表中的符号信息
+//        std::string name = getSymbolNameByValue(base_addr,&sym[symbol_index]);
+//        __android_log_print(ANDROID_LOG_DEBUG, "get symbol",
+//                            "%d,name:(%p)(%s)(%p)",
+//                            symbol_index,&sym[symbol_index].st_value,name.c_str(),reloc->r_offset);
+//        if(name.find("malloc")!= std::string::npos){
+//            originFunc = reloc->r_offset + base_addr;
+//            break;
+//        }
+//    }
 
 }
 

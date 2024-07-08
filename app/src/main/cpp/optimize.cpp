@@ -33,18 +33,18 @@ int getMaxFreqCPU() {
     for (int i = 0; i < getNumberOfCPUCores(); i++) {
         std::string filename = "/sys/devices/system/cpu/cpu" +
                                std::to_string(i) + "/cpufreq/cpuinfo_max_freq";
-        std::ifstream cpuInfoMaxFreqFile(filename);
-        if (cpuInfoMaxFreqFile.is_open()) {
-            std::string line;
-            if (std::getline(cpuInfoMaxFreqFile, line)) {
+        FILE* cpuInfoMaxFreqFile = fopen(filename.c_str(), "r");
+        if (cpuInfoMaxFreqFile != nullptr) {
+            char line[256];
+            if (fgets(line, sizeof(line), cpuInfoMaxFreqFile) != nullptr) {
                 try {
                     int freqBound = std::stoi(line);
                     if (freqBound > maxFreq) maxFreq = freqBound;
-                } catch (const std::invalid_argument& e) {
+                } catch (const std::exception& e) {
 
                 }
             }
-            cpuInfoMaxFreqFile.close();
+            fclose(cpuInfoMaxFreqFile);
         }
     }
     return maxFreq;

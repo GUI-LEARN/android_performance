@@ -16,6 +16,7 @@ public class NativeLeakActivity extends AppCompatActivity {
         ByteHook.init();
         System.loadLibrary("example");
         System.loadLibrary("optimize");
+//        hookMallocByPLTHook();
         hookMallocByBHook();
         mallocLeak();
     }
